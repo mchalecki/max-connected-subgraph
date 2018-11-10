@@ -52,12 +52,12 @@ class Graph:
         return Graph(matrix)
 
     @staticmethod
-    def get_index(val1: int, val2: int, n: int) -> int:
+    def encode_index(val1: int, val2: int, n: int) -> int:
         """Encodes two values into one. n is max value + 1 of second element in tuple(n_vertices of second)."""
         return val1 * n + val2
 
     @staticmethod
-    def obtain_index(val: int, n: int) -> Tuple[int, int]:
+    def decode_index(val: int, n: int) -> Tuple[int, int]:
         """Returns two values from one. n is max value + 1 of second element in tuple(n_vertices of second)."""
         return val // n, val % n
 
