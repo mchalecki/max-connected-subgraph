@@ -1,4 +1,4 @@
-# Maximal Common Indeuced Subgraph
+# Maximal Common Induced Subgraph
 ### Authors:
 - Marcin Chalecki
 - Adam Przywarty
