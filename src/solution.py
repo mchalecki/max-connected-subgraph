@@ -29,7 +29,7 @@ class Graph:
         return self.matrix[v1][v2]
 
     @property
-    def n_vertices(self)->int:
+    def n_vertices(self) -> int:
         """Get number of vertices of graph"""
         return self.matrix.shape[0]
 
@@ -43,13 +43,17 @@ class Graph:
         n_g2 = g2.n_vertices
         matrix = np.full([n_g1 * n_g2, n_g1 * n_g2], np.nan)
 
-        get_index = partial(Graph.get_index, n=n_g2)
+        encode_index = partial(Graph.encode_index, n=n_g2)
         for v1, v2 in product(range(n_g1), range(n_g2)):
             for v1_, v2_ in product(range(n_g1), range(n_g2)):
-                matrix[get_index(v1, v2)][get_index(v1_, v2_)] = 1 if \
-                    (g1.is_connected(v1, v1_) and g2.is_connected(v2, v2_)) or \
-                    (not g1.is_connected(v1, v1_) and not g2.is_connected(v2, v2_)) else 0
-        return Graph(matrix)
+                if v1 != v1_ or v2 != v2_:
+                    matrix[encode_index(v1, v2)][encode_index(v1_, v2_)] = 1 if \
+                        (g1.is_connected(v1, v1_) and g2.is_connected(v2, v2_)) or \
+                        (not g1.is_connected(v1, v1_) and not g2.is_connected(v2, v2_)) else 0
+                else:
+                    matrix[encode_index(v1, v2)][encode_index(v1_, v2_)] = 0
+
+        return Graph(matrix.astype(bool))
 
     @staticmethod
     def encode_index(val1: int, val2: int, n: int) -> int:
