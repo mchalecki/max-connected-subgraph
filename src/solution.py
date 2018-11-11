@@ -48,7 +48,7 @@ class Graph:
         encode_index = partial(Graph.encode_index, n_vertices=[n_g1, n_g2])
         for v1, v2 in product(range(n_g1), range(n_g2)):
             for v1_, v2_ in product(range(n_g1), range(n_g2)):
-                if v1 != v1_ or v2 != v2_:
+                if v1 != v1_ and v2 != v2_:
                     matrix[encode_index(v1, v2)][encode_index(v1_, v2_)] = 1 if \
                         (g1.is_connected(v1, v1_) and g2.is_connected(v2, v2_)) or \
                         (not g1.is_connected(v1, v1_) and not g2.is_connected(v2, v2_)) else 0
@@ -178,19 +178,33 @@ class MaxClique:
 
 class Visualizer:
     def __init__(self, g1, g2, G, max_found, c1, c2):
-        plt.subplot(221)
-        visualization = nx.from_numpy_matrix(G.matrix.astype(int))
+        plt.subplot(231)
+        visualization = nx.from_numpy_matrix(g1.matrix.astype(int))
         pos = nx.spring_layout(visualization)
         nx.draw_networkx(visualization, pos, node_size=100)
 
-        plt.subplot(222)
+        plt.subplot(232)
+        visualization = nx.from_numpy_matrix(g2.matrix.astype(int))
+        pos = nx.spring_layout(visualization)
+        nx.draw_networkx(visualization, pos, node_size=100)
+
+        plt.subplot(233)
+        visualization = nx.from_numpy_matrix(G.matrix.astype(int))
+        pos = nx.spring_layout(visualization)
         nx.draw_networkx(visualization, pos, node_size=50)
         self._outline_selected_vertices(visualization, pos, max_found)
 
-        plt.subplot(223)
-        self._draw_original_graph(g1, c1)
-        plt.subplot(224)
-        self._draw_original_graph(g2, c2)
+        plt.subplot(234)
+        visualization = nx.from_numpy_matrix(g1.matrix.astype(int))
+        pos = nx.spring_layout(visualization)
+        nx.draw_networkx(visualization, pos, node_size=100)
+        self._outline_selected_vertices(visualization, pos, c1)
+
+        plt.subplot(235)
+        visualization = nx.from_numpy_matrix(g2.matrix.astype(int))
+        pos = nx.spring_layout(visualization)
+        nx.draw_networkx(visualization, pos, node_size=100)
+        self._outline_selected_vertices(visualization, pos, c2)
 
         plt.show()
 
@@ -231,15 +245,17 @@ def main() -> None:
     print(G)
     max_clique = MaxClique(G, approx=False)
 
-    c1, c2 = set(), set()
+    c1 = []
+    c2 = []
 
-    for vertex_in_modular_graph in max_clique.max_found:
-        v_in_g1, v_in_g2 = Graph.decode_index(vertex_in_modular_graph, [g1.n_vertices, g2.n_vertices])
-        c1.add(v_in_g1)
-        c2.add(v_in_g2)
+    for v in max_clique.max_found:
+        i, j = Graph.decode_index(v, [g1.n_vertices, g2.n_vertices])
+        c1.append(i)
+        c2.append(j)
 
+    print(c1)
+    print(c2)
     Visualizer(g1, g2, G, max_clique.max_found, c1, c2)
-
 
 if __name__ == '__main__':
     main()
