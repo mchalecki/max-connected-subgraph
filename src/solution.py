@@ -45,7 +45,7 @@ class Graph:
         n_g2 = g2.n_vertices
         matrix = np.full([n_g1 * n_g2, n_g1 * n_g2], np.nan)
 
-        encode_index = partial(Graph.encode_index, n=n_g2)
+        encode_index = partial(Graph.encode_index, n=max([n_g1, n_g2]))
         for v1, v2 in product(range(n_g1), range(n_g2)):
             for v1_, v2_ in product(range(n_g1), range(n_g2)):
                 if v1 != v1_ or v2 != v2_:
@@ -56,6 +56,31 @@ class Graph:
                     matrix[encode_index(v1, v2)][encode_index(v1_, v2_)] = 0
 
         return Graph(matrix.astype(bool))
+
+    @staticmethod
+    def decompose_modular_product(modular_g: Graph, vertices_g1: int, vertices_g2: int, verbose=False) -> Tuple[
+        Graph, Graph]:
+        assert vertices_g1 * vertices_g2 == modular_g.matrix.shape[0]
+        encode = partial(Graph.encode_index, n=max([vertices_g1, vertices_g2]))
+        matrix1 = np.full([vertices_g1, vertices_g1], np.nan)
+        matrix2 = np.full([vertices_g2, vertices_g2], np.nan)
+
+        for i in range(vertices_g1):
+            for j in range(vertices_g1):
+                if i == j:
+                    matrix1[i][j] = 0
+                else:
+                    matrix1[i][j] = 1 if modular_g.matrix[encode(i, 0)][encode(j, 0)] == 0 else 0
+        if verbose: print(matrix1)
+
+        for i in range(vertices_g2):
+            for j in range(vertices_g2):
+                if i == j:
+                    matrix2[i][j] = 0
+                else:
+                    matrix2[i][j] = 1 if modular_g.matrix[encode(0, i)][encode(0, j)] == 0 else 0
+        if verbose: print(matrix2)
+        return Graph(matrix1.astype(bool)), Graph(matrix2.astype(bool))
 
     @staticmethod
     def encode_index(val1: int, val2: int, n: int) -> int:
@@ -117,14 +142,14 @@ class MaxClique:
 
             self.log.append(f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
             self._clique(U & N, current_clique)
-    
+
     def _clique_approximation(self, U, current_clique):
         self.log.append(f'_clique U: {U}\tcurrent: {current_clique}')
         if len(U) == 0 and len(current_clique) > len(self.max_found):
             self.log.append(f"_new_max_found: {current_clique}\told: {self.max_found}")
             self.max_found = set(current_clique)
             return
-        
+
         u = self._get_neighbor_with_max_degree(U)
         if u is not None:
             U.remove(u)
@@ -134,7 +159,7 @@ class MaxClique:
 
             self.log.append(f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
             self._clique_approximation(U & N, current_clique)
-    
+
     def _get_neighbor_with_max_degree(self, U):
         max_degree = 0
         max_neighbor = None
@@ -182,7 +207,6 @@ class Visualizer:
         nx.draw_networkx(visualization, pos, node_size=50)
         self._outline_selected_vertices(visualization, pos, selected_vertex_set)
 
-    
 
 def main() -> None:
     def parse_arguments() -> argparse.Namespace:
@@ -198,11 +222,11 @@ def main() -> None:
     g1 = Graph(args.graphs[0])
     g2 = Graph(args.graphs[1])
     G = Graph.modular_product(g1, g2)
+    print(g1)
+    print(g2)
 
-    # G = Graph(args.graphs[0])
     print("\nLOOKING FOR A MAX CLIQUE IN THE FOLLOWING GRAPH:")
     print(G)
-    
     max_clique = MaxClique(G, approx=False)
 
     c1, c2 = set(), set()
