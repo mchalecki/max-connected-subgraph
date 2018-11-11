@@ -7,12 +7,14 @@ from itertools import product
 import argparse
 from typing import Union, Tuple
 import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
 
 from numpy import genfromtxt
 
 
 class Graph:
-    def __init__(self, matrix: Union[str, io.TextIOWrapper, np.ndarray]) -> None:
+    def __init__(self, matrix: Union[str, io.TextIOWrapper, np.ndarray]):
         if isinstance(matrix, str) or isinstance(matrix, io.TextIOWrapper):
             self.matrix = genfromtxt(matrix, delimiter=',', dtype=int).astype(bool)
         elif isinstance(matrix, np.ndarray):
@@ -66,6 +68,101 @@ class Graph:
         return val // n, val % n
 
 
+class MaxClique:
+    def __init__(self, G, approx=False):
+        self.G = G
+        self.approx = approx
+        self.max_found = set()
+        self.log = []
+        self._run()
+        self._visualize()
+    
+    def _visualize(self):
+        visualization = nx.from_numpy_matrix(self.G.matrix.astype(int))
+        pos = nx.spring_layout(visualization)
+        nx.draw_networkx(visualization, pos, node_size=50)
+        nx.draw_networkx_nodes(
+            visualization, pos,
+            nodelist=list(self.max_found),
+            node_color='g',
+            node_size=50,
+            font_size=6,
+        )
+        plt.show()
+
+    def _run(self):
+        for i in range(self.G.n_vertices):
+            self.log = []
+            N = self.G.get_neighbors(i)
+            if len(N) >= len(self.max_found):
+                U = set()
+                for j in N:
+                    if j > i:
+                        if len(self.G.get_neighbors(j)) >= len(self.max_found):
+                            U.add(j)
+            print(f"\n\nSearching for i={i}\tU: {U}\tN: {N}")
+            if self.approx:
+                self._clique_approximation(U, {i})
+            else:
+                self._clique(U, {i})
+            print('Search log:\n{}'.format('\n'.join(self.log)))
+
+        if len(self.max_found) > 0:
+            print(f"MAX CLIQUE FOUND:\n{self.max_found}")
+        else:
+            print("NO CLIQUE FOUND.")
+
+    def _clique(self, U, current_clique):
+        self.log.append(f'_clique U: {U}\tcurrent: {current_clique}')
+        if len(U) == 0 and len(current_clique) > len(self.max_found):
+            self.log.append(f"_new_max_found: {current_clique}\told: {self.max_found}")
+            self.max_found = set(current_clique)
+            return
+
+        while len(U) > 0:
+            if len(current_clique) + len(U) <= len(self.max_found):
+                self.log.append(f'_clique_too_small U: {U}\tcurrent: {current_clique}\tmax: {self.max_found}')
+                return
+
+            u = U.pop()
+            if all([self.G.is_connected(w, u) for w in current_clique]):
+                current_clique.add(u)
+            N = set(self._filter_neighborhood(u))
+
+            self.log.append(f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
+            self._clique(U & N, current_clique)
+    
+    def _clique_approximation(self, U, current_clique):
+        self.log.append(f'_clique U: {U}\tcurrent: {current_clique}')
+        if len(U) == 0 and len(current_clique) > len(self.max_found):
+            self.log.append(f"_new_max_found: {current_clique}\told: {self.max_found}")
+            self.max_found = set(current_clique)
+            return
+        
+        u = self._get_neighbor_with_max_degree(U)
+        if u is not None:
+            U.remove(u)
+            if all([self.G.is_connected(w, u) for w in current_clique]):
+                current_clique.add(u)
+            N = set(self._filter_neighborhood(u))
+
+            self.log.append(f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
+            self._clique_approximation(U & N, current_clique)
+    
+    def _get_neighbor_with_max_degree(self, U):
+        max_degree = 0
+        max_neighbor = None
+        for u in U:
+            degree = len(self.G.get_neighbors(u))
+            if degree > max_degree:
+                max_neighbor = u
+                max_degree = degree
+        return max_neighbor
+
+    def _filter_neighborhood(self, u):
+        return [w for w in self.G.get_neighbors(u) if len(self.G.get_neighbors(w)) >= len(self.max_found)]
+    
+
 def main() -> None:
     def parse_arguments() -> argparse.Namespace:
         parser = argparse.ArgumentParser(description='Calulates maximal common induced connected subgraph.')
@@ -79,8 +176,13 @@ def main() -> None:
     args = parse_arguments()
     g1 = Graph(args.graphs[0])
     g2 = Graph(args.graphs[1])
-    g = Graph.modular_product(g1, g2)
-    print(g)
+    G = Graph.modular_product(g1, g2)
+
+    # G = Graph(args.graphs[0])
+    print("\nLOOKING FOR A MAX CLIQUE IN THE FOLLOWING GRAPH:")
+    print(G)
+    
+    max_clique = MaxClique(G, approx=True)
 
 
 if __name__ == '__main__':
