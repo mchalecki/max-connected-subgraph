@@ -75,20 +75,6 @@ class MaxClique:
         self.max_found = set()
         self.log = []
         self._run()
-        self._visualize()
-    
-    def _visualize(self):
-        visualization = nx.from_numpy_matrix(self.G.matrix.astype(int))
-        pos = nx.spring_layout(visualization)
-        nx.draw_networkx(visualization, pos, node_size=50)
-        nx.draw_networkx_nodes(
-            visualization, pos,
-            nodelist=list(self.max_found),
-            node_color='g',
-            node_size=50,
-            font_size=6,
-        )
-        plt.show()
 
     def _run(self):
         for i in range(self.G.n_vertices):
@@ -161,6 +147,41 @@ class MaxClique:
 
     def _filter_neighborhood(self, u):
         return [w for w in self.G.get_neighbors(u) if len(self.G.get_neighbors(w)) >= len(self.max_found)]
+
+
+class Visualizer:
+    def __init__(self, g1, g2, G, max_found, c1, c2):
+        plt.subplot(221)
+        visualization = nx.from_numpy_matrix(G.matrix.astype(int))
+        pos = nx.spring_layout(visualization)
+        nx.draw_networkx(visualization, pos, node_size=100)
+
+        plt.subplot(222)
+        nx.draw_networkx(visualization, pos, node_size=50)
+        self._outline_selected_vertices(visualization, pos, max_found)
+
+        plt.subplot(223)
+        self._draw_original_graph(g1, c1)
+        plt.subplot(224)
+        self._draw_original_graph(g2, c2)
+
+        plt.show()
+
+    def _outline_selected_vertices(self, visualization, pos, selected_vertex_set):
+        nx.draw_networkx_nodes(
+            visualization, pos,
+            nodelist=list(selected_vertex_set),
+            node_color='g',
+            node_size=50,
+            font_size=6,
+        )
+
+    def _draw_original_graph(self, graph, selected_vertex_set):
+        visualization = nx.from_numpy_matrix(graph.matrix.astype(int))
+        pos = nx.spring_layout(visualization)
+        nx.draw_networkx(visualization, pos, node_size=50)
+        self._outline_selected_vertices(visualization, pos, selected_vertex_set)
+
     
 
 def main() -> None:
@@ -182,7 +203,16 @@ def main() -> None:
     print("\nLOOKING FOR A MAX CLIQUE IN THE FOLLOWING GRAPH:")
     print(G)
     
-    max_clique = MaxClique(G, approx=True)
+    max_clique = MaxClique(G, approx=False)
+
+    c1, c2 = set(), set()
+
+    for vertex_in_modular_graph in max_clique.max_found:
+        v_in_g1, v_in_g2 = Graph.decode_index(vertex_in_modular_graph, g2.n_vertices)
+        c1.add(v_in_g1)
+        c2.add(v_in_g2)
+
+    Visualizer(g1, g2, G, max_clique.max_found, c1, c2)
 
 
 if __name__ == '__main__':
