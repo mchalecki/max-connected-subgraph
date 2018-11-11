@@ -5,7 +5,7 @@ from functools import partial
 from itertools import product
 
 import argparse
-from typing import Union, Tuple
+from typing import Union, Tuple, List
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -45,7 +45,7 @@ class Graph:
         n_g2 = g2.n_vertices
         matrix = np.full([n_g1 * n_g2, n_g1 * n_g2], np.nan)
 
-        encode_index = partial(Graph.encode_index, n=max([n_g1, n_g2]))
+        encode_index = partial(Graph.encode_index, n_vertices=[n_g1, n_g2])
         for v1, v2 in product(range(n_g1), range(n_g2)):
             for v1_, v2_ in product(range(n_g1), range(n_g2)):
                 if v1 != v1_ or v2 != v2_:
@@ -61,7 +61,7 @@ class Graph:
     def decompose_modular_product(modular_g: Graph, vertices_g1: int, vertices_g2: int, verbose=False) -> Tuple[
         Graph, Graph]:
         assert vertices_g1 * vertices_g2 == modular_g.matrix.shape[0]
-        encode = partial(Graph.encode_index, n=max([vertices_g1, vertices_g2]))
+        encode = partial(Graph.encode_index, n_vertices=[vertices_g1, vertices_g2])
         matrix1 = np.full([vertices_g1, vertices_g1], np.nan)
         matrix2 = np.full([vertices_g2, vertices_g2], np.nan)
 
@@ -83,13 +83,15 @@ class Graph:
         return Graph(matrix1.astype(bool)), Graph(matrix2.astype(bool))
 
     @staticmethod
-    def encode_index(val1: int, val2: int, n: int) -> int:
-        """Encodes two values into one. n is max value + 1 of second element in tuple(n_vertices of second)."""
+    def encode_index(val1: int, val2: int, n_vertices: List[int, int]) -> int:
+        """Encodes two values into one. n_vertices is list of number of vertices in graphs."""
+        n = max(n_vertices)
         return val1 * n + val2
 
     @staticmethod
-    def decode_index(val: int, n: int) -> Tuple[int, int]:
-        """Returns two values from one. n is max value + 1 of second element in tuple(n_vertices of second)."""
+    def decode_index(val: int, n_vertices: List[int, int]) -> Tuple[int, int]:
+        """Returns two values from one. n_vertices is list of number of vertices in graphs."""
+        n = max(n_vertices)
         return val // n, val % n
 
 
@@ -232,7 +234,7 @@ def main() -> None:
     c1, c2 = set(), set()
 
     for vertex_in_modular_graph in max_clique.max_found:
-        v_in_g1, v_in_g2 = Graph.decode_index(vertex_in_modular_graph, g2.n_vertices)
+        v_in_g1, v_in_g2 = Graph.decode_index(vertex_in_modular_graph, [g1.n_vertices, g2.n_vertices])
         c1.add(v_in_g1)
         c2.add(v_in_g2)
 
