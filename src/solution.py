@@ -85,13 +85,13 @@ class Graph:
     @staticmethod
     def encode_index(val1: int, val2: int, n_vertices: List[int, int]) -> int:
         """Encodes two values into one. n_vertices is list of number of vertices in graphs."""
-        n = max(n_vertices)
+        n = n_vertices[1]
         return val1 * n + val2
 
     @staticmethod
     def decode_index(val: int, n_vertices: List[int, int]) -> Tuple[int, int]:
         """Returns two values from one. n_vertices is list of number of vertices in graphs."""
-        n = max(n_vertices)
+        n = n_vertices[1]
         return val // n, val % n
 
 
@@ -243,7 +243,14 @@ def main() -> None:
 
     print("\nLOOKING FOR A MAX CLIQUE IN THE FOLLOWING GRAPH:")
     print(G)
+    import time
+    
+    start = time.time()
     max_clique = MaxClique(G, approx=False)
+    duration = time.time() - start
+
+    print(f'Duration: {duration}')
+
 
     c1 = []
     c2 = []
