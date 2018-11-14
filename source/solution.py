@@ -1,3 +1,4 @@
+import csv
 import io
 import time
 import os
@@ -203,7 +204,7 @@ def main():
     parser = argparse.ArgumentParser(description='Calulates maximal common induced connected subgraph.')
     parser.add_argument('--verbose', '-v', action='store_true', help='print log messages (for debugging).')
     parser.add_argument('--approx', '-a', action='store_true', help='use faster approximating algorithm.')
-    parser.add_argument('--num', '-n', type=int, choices=range(1, 11), help='choose which test to run.')
+    parser.add_argument('--num', '-n', type=int, choices=range(1, 13), help='choose which test to run.')
     args = parser.parse_args()
     print(args.num)
 
@@ -223,7 +224,6 @@ def main():
             calculate_example(example, args)
 
 
-
 def calculate_example(example, args):
     print(f'\t\t+++STARTING {example}+++\n')
     graphs = os.listdir(f'examples/{example}')
@@ -231,7 +231,10 @@ def calculate_example(example, args):
     g1 = Graph(get_path(graphs[0]))
     g2 = Graph(get_path(graphs[1]))
     print(f'g1:\n {g1} \n\n g2:\n{g2}')
+    start = time.time()
     G = Graph.modular_product(g1, g2)
+    duration1 = time.time() - start
+    print(f'\n\t+++MODULAR PRODUCT FOUND IN: {duration1}.s+++\n')
 
     args.approx and print('\t\t+++APPROXIMATING+++')
     print("\n\t+++LOOKING FOR A MAX CLIQUE IN THE FOLLOWING GRAPH:+++")
@@ -239,8 +242,8 @@ def calculate_example(example, args):
 
     start = time.time()
     max_clique = MaxClique(G, approx=args.approx, verbose=args.verbose)
-    duration = time.time() - start
-    print(f'\n\t+++MAX CLIQUE FOUND IN: {duration}.s+++\n')
+    duration2 = time.time() - start
+    print(f'\n\t+++MAX CLIQUE FOUND IN: {duration2}.s+++\n')
 
     c1 = []
     c2 = []
@@ -257,6 +260,10 @@ def calculate_example(example, args):
 
     print(f'\n\t+++PLEASE CLOSE THE WINDOW TO CONTINUE...+++')
     Visualizer(g1, g2, G, max_clique.max_found, c1, c2)
+    # fields=[g1.n_vertices, g2.n_vertices, duration1, duration2]
+    # with open('result.csv', 'a') as f:
+    #     writer = csv.writer(f)
+    #     writer.writerow(fields)
 
 if __name__ == '__main__':
     main()
