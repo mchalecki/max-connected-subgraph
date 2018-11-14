@@ -1,10 +1,11 @@
-from __future__ import annotations
-
 import io
+import time
+import os
 from functools import partial
 from itertools import product
 
 import argparse
+from tqdm import tqdm
 from typing import Union, Tuple, List
 import numpy as np
 import networkx as nx
@@ -14,7 +15,7 @@ from numpy import genfromtxt
 
 
 class Graph:
-    def __init__(self, matrix: Union[str, io.TextIOWrapper, np.ndarray]):
+    def __init__(self, matrix):
         if isinstance(matrix, str) or isinstance(matrix, io.TextIOWrapper):
             self.matrix = genfromtxt(matrix, delimiter=',', dtype=int).astype(bool)
         elif isinstance(matrix, np.ndarray):
@@ -22,24 +23,24 @@ class Graph:
         else:
             raise Exception("Bad argument type")
 
-    def get_neighbors(self, vertex: int) -> np.ndarray:
+    def get_neighbors(self, vertex):
         """Returns ndarray with indices of neighbors"""
         return np.flatnonzero(self.matrix[vertex])
 
-    def is_connected(self, v1: int, v2: int) -> bool:
+    def is_connected(self, v1, v2):
         """Check whether vertices are connected"""
         return self.matrix[v1][v2]
 
     @property
-    def n_vertices(self) -> int:
+    def n_vertices(self):
         """Get number of vertices of graph"""
         return self.matrix.shape[0]
 
-    def __str__(self) -> str:
+    def __str__(self):
         return str(self.matrix.astype(int))
 
     @staticmethod
-    def modular_product(g1: Graph, g2: Graph) -> Graph:
+    def modular_product(g1, g2):
         """Creates modular product of two graphs(https://en.wikipedia.org/wiki/Modular_product_of_graphs)."""
         n_g1 = g1.n_vertices
         n_g2 = g2.n_vertices
@@ -58,53 +59,29 @@ class Graph:
         return Graph(matrix.astype(bool))
 
     @staticmethod
-    def decompose_modular_product(modular_g: Graph, vertices_g1: int, vertices_g2: int, verbose=False) -> Tuple[
-        Graph, Graph]:
-        assert vertices_g1 * vertices_g2 == modular_g.matrix.shape[0]
-        encode = partial(Graph.encode_index, n_vertices=[vertices_g1, vertices_g2])
-        matrix1 = np.full([vertices_g1, vertices_g1], np.nan)
-        matrix2 = np.full([vertices_g2, vertices_g2], np.nan)
-
-        for i in range(vertices_g1):
-            for j in range(vertices_g1):
-                if i == j:
-                    matrix1[i][j] = 0
-                else:
-                    matrix1[i][j] = 1 if modular_g.matrix[encode(i, 0)][encode(j, 0)] == 0 else 0
-        if verbose: print(matrix1)
-
-        for i in range(vertices_g2):
-            for j in range(vertices_g2):
-                if i == j:
-                    matrix2[i][j] = 0
-                else:
-                    matrix2[i][j] = 1 if modular_g.matrix[encode(0, i)][encode(0, j)] == 0 else 0
-        if verbose: print(matrix2)
-        return Graph(matrix1.astype(bool)), Graph(matrix2.astype(bool))
-
-    @staticmethod
-    def encode_index(val1: int, val2: int, n_vertices: List[int, int]) -> int:
+    def encode_index(val1, val2, n_vertices):
         """Encodes two values into one. n_vertices is list of number of vertices in graphs."""
         n = n_vertices[1]
         return val1 * n + val2
 
     @staticmethod
-    def decode_index(val: int, n_vertices: List[int, int]) -> Tuple[int, int]:
+    def decode_index(val, n_vertices):
         """Returns two values from one. n_vertices is list of number of vertices in graphs."""
         n = n_vertices[1]
         return val // n, val % n
 
 
 class MaxClique:
-    def __init__(self, G, approx=False):
+    def __init__(self, G, approx=False, verbose=False):
         self.G = G
         self.approx = approx
+        self.verbose = verbose
         self.max_found = set()
         self.log = []
         self._run()
 
     def _run(self):
-        for i in range(self.G.n_vertices):
+        for i in tqdm(range(self.G.n_vertices)):
             self.log = []
             N = self.G.get_neighbors(i)
             if len(N) >= len(self.max_found):
@@ -113,12 +90,12 @@ class MaxClique:
                     if j > i:
                         if len(self.G.get_neighbors(j)) >= len(self.max_found):
                             U.add(j)
-            print(f"\n\nSearching for i={i}\tU: {U}\tN: {N}")
+            self.verbose and print(f"\n\nSearching for i={i}\tU: {U}\tN: {N}")
             if self.approx:
                 self._clique_approximation(U, {i})
             else:
                 self._clique(U, {i})
-            print('Search log:\n{}'.format('\n'.join(self.log)))
+            self.verbose and print('Search log:\n{}'.format('\n'.join(self.log)))
 
         if len(self.max_found) > 0:
             print(f"MAX CLIQUE FOUND:\n{self.max_found}")
@@ -126,15 +103,15 @@ class MaxClique:
             print("NO CLIQUE FOUND.")
 
     def _clique(self, U, current_clique):
-        self.log.append(f'_clique U: {U}\tcurrent: {current_clique}')
+        self.verbose and self.log.append(f'_clique U: {U}\tcurrent: {current_clique}')
         if len(U) == 0 and len(current_clique) > len(self.max_found):
-            self.log.append(f"_new_max_found: {current_clique}\told: {self.max_found}")
+            self.verbose and self.log.append(f"_new_max_found: {current_clique}\told: {self.max_found}")
             self.max_found = set(current_clique)
             return
 
         while len(U) > 0:
             if len(current_clique) + len(U) <= len(self.max_found):
-                self.log.append(f'_clique_too_small U: {U}\tcurrent: {current_clique}\tmax: {self.max_found}')
+                self.verbose and self.log.append(f'_clique_too_small U: {U}\tcurrent: {current_clique}\tmax: {self.max_found}')
                 return
 
             u = U.pop()
@@ -142,13 +119,13 @@ class MaxClique:
                 current_clique.add(u)
             N = set(self._filter_neighborhood(u))
 
-            self.log.append(f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
+            self.verbose and self.log.append(f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
             self._clique(U & N, current_clique)
 
     def _clique_approximation(self, U, current_clique):
-        self.log.append(f'_clique U: {U}\tcurrent: {current_clique}')
+        self.verbose and self.log.append(f'_clique U: {U}\tcurrent: {current_clique}')
         if len(U) == 0 and len(current_clique) > len(self.max_found):
-            self.log.append(f"_new_max_found: {current_clique}\told: {self.max_found}")
+            self.verbose and self.log.append(f"_new_max_found: {current_clique}\told: {self.max_found}")
             self.max_found = set(current_clique)
             return
 
@@ -159,7 +136,7 @@ class MaxClique:
                 current_clique.add(u)
             N = set(self._filter_neighborhood(u))
 
-            self.log.append(f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
+            self.verbose and self.log.append(f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
             self._clique_approximation(U & N, current_clique)
 
     def _get_neighbor_with_max_degree(self, U):
@@ -178,34 +155,32 @@ class MaxClique:
 
 class Visualizer:
     def __init__(self, g1, g2, G, max_found, c1, c2):
-        plt.subplot(231)
-        visualization = nx.from_numpy_matrix(g1.matrix.astype(int))
-        pos = nx.spring_layout(visualization)
-        nx.draw_networkx(visualization, pos, node_size=100)
-
-        plt.subplot(232)
-        visualization = nx.from_numpy_matrix(g2.matrix.astype(int))
-        pos = nx.spring_layout(visualization)
-        nx.draw_networkx(visualization, pos, node_size=100)
-
-        plt.subplot(233)
-        visualization = nx.from_numpy_matrix(G.matrix.astype(int))
-        pos = nx.spring_layout(visualization)
-        nx.draw_networkx(visualization, pos, node_size=50)
-        self._outline_selected_vertices(visualization, pos, max_found)
-
-        plt.subplot(234)
+        ax = plt.subplot(131)
+        ax.set_title("First graph (green is the maximal common subgraph)", fontsize=8)
         visualization = nx.from_numpy_matrix(g1.matrix.astype(int))
         pos = nx.spring_layout(visualization)
         nx.draw_networkx(visualization, pos, node_size=100)
         self._outline_selected_vertices(visualization, pos, c1)
+        plt.axis('off')
 
-        plt.subplot(235)
+        ax = plt.subplot(132)
+        ax.set_title("Second graph (green is the maximal common subgraph)", fontsize=8)
         visualization = nx.from_numpy_matrix(g2.matrix.astype(int))
         pos = nx.spring_layout(visualization)
         nx.draw_networkx(visualization, pos, node_size=100)
         self._outline_selected_vertices(visualization, pos, c2)
+        plt.axis('off')
 
+        ax = plt.subplot(133)
+        ax.set_title("Modular product of both graphs. Green is the maximal clique found.", fontsize=8)
+        visualization = nx.from_numpy_matrix(G.matrix.astype(int))
+        pos = nx.spring_layout(visualization)
+        nx.draw_networkx(visualization, pos, node_size=50)
+        self._outline_selected_vertices(visualization, pos, max_found)
+        plt.axis('off')
+
+        mng = plt.get_current_fig_manager()
+        mng.resize(*mng.window.maxsize())
         plt.show()
 
     def _outline_selected_vertices(self, visualization, pos, selected_vertex_set):
@@ -213,7 +188,7 @@ class Visualizer:
             visualization, pos,
             nodelist=list(selected_vertex_set),
             node_color='g',
-            node_size=50,
+            node_size=100,
             font_size=6,
         )
 
@@ -224,33 +199,43 @@ class Visualizer:
         self._outline_selected_vertices(visualization, pos, selected_vertex_set)
 
 
-def main() -> None:
-    def parse_arguments() -> argparse.Namespace:
-        parser = argparse.ArgumentParser(description='Calulates maximal common induced connected subgraph.')
-        parser.add_argument('--graphs', '-g', type=argparse.FileType('r'), nargs=2,
-                            help='an integer for the accumulator',
-                            required=True)
+def main():
+    parser = argparse.ArgumentParser(description='Calulates maximal common induced connected subgraph.')
+    parser.add_argument('--verbose', '-v', action='store_true', help='print log messages (for debugging).')
+    parser.add_argument('--approx', '-a', action='store_true', help='use faster approximating algorithm.')
+    parser.add_argument('--num', '-n', type=int, choices=range(1, 11), help='choose which test to run.')
+    args = parser.parse_args()
+    print(args.num)
 
-        args = parser.parse_args()
-        return args
+    data = os.listdir('data')
+    data.sort(key=int)
 
-    args = parse_arguments()
-    g1 = Graph(args.graphs[0])
-    g2 = Graph(args.graphs[1])
+    if args.num:
+        example = data[args.num-1]
+        calculate_example(example, args)
+        return
+
+    for example in data:
+        calculate_example(example, args)
+
+
+def calculate_example(example, args):
+    print(f'\t\t+++STARTING {example}+++\n')
+    graphs = os.listdir(f'data/{example}')
+    get_path = lambda name: os.path.realpath('.') + f'/data/{example}/{name}'
+    g1 = Graph(get_path(graphs[0]))
+    g2 = Graph(get_path(graphs[1]))
+    print(f'g1:\n {g1} \n\n g2:\n{g2}')
     G = Graph.modular_product(g1, g2)
-    print(g1)
-    print(g2)
 
-    print("\nLOOKING FOR A MAX CLIQUE IN THE FOLLOWING GRAPH:")
+    args.approx and print('\t\t+++APPROXIMATING+++')
+    print("\n\t+++LOOKING FOR A MAX CLIQUE IN THE FOLLOWING GRAPH:+++")
     print(G)
-    import time
-    
+
     start = time.time()
-    max_clique = MaxClique(G, approx=False)
+    max_clique = MaxClique(G, approx=args.approx, verbose=args.verbose)
     duration = time.time() - start
-
-    print(f'Duration: {duration}')
-
+    print(f'\n\t+++MAX CLIQUE FOUND IN: {duration}.s+++\n')
 
     c1 = []
     c2 = []
@@ -260,8 +245,12 @@ def main() -> None:
         c1.append(i)
         c2.append(j)
 
-    print(c1)
-    print(c2)
+    print(f'\n\t+++SUBGRAPH IN G1+++')
+    print('\t\t'+str(c1))
+    print(f'\n\t+++SUBGRAPH IN G2+++')
+    print('\t\t'+str(c2))
+
+    print(f'\n\t+++PLEASE CLOSE THE WINDOW TO CONTINUE...+++')
     Visualizer(g1, g2, G, max_clique.max_found, c1, c2)
 
 if __name__ == '__main__':
