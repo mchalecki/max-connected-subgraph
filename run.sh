@@ -2,7 +2,7 @@
 if [ -d ./env3 ]; then
   echo 'Environment found, starting program.' &&
   source env3/bin/activate &&
-  python3 src/solution.py "$@"
+  python3 source/solution.py "$@"
 else
   echo 'Environment not found, initialising.'
   yes | sudo apt-get install python3-venv &&
