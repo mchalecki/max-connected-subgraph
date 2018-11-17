@@ -204,11 +204,12 @@ def main():
     parser = argparse.ArgumentParser(description='Calulates maximal common induced connected subgraph.')
     parser.add_argument('--verbose', '-v', action='store_true', help='print log messages (for debugging).')
     parser.add_argument('--approx', '-a', action='store_true', help='use faster approximating algorithm.')
+    parser.add_argument('--input', '-i', type=str, help='input directory.')
     parser.add_argument('--num', '-n', type=int, choices=range(1, 13), help='choose which test to run.')
     args = parser.parse_args()
     print(args.num)
 
-    data = os.listdir('examples')
+    data = os.listdir(args.input)
     data.sort(key=int)
 
     if args.num:
@@ -228,8 +229,8 @@ def main():
 
 def calculate_example(example, args):
     print(f'\t\t+++STARTING {example}+++\n')
-    graphs = os.listdir(f'examples/{example}')
-    get_path = lambda name: os.path.realpath('.') + f'/examples/{example}/{name}'
+    graphs = os.listdir(f'{args.input}/{example}')
+    get_path = lambda name: os.path.realpath('.') + f'/{args.input}/{example}/{name}'
     g1 = Graph(get_path(graphs[0]))
     g2 = Graph(get_path(graphs[1]))
     print(f'g1:\n {g1} \n\n g2:\n{g2}')
