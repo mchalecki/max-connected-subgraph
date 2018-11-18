@@ -39,8 +39,8 @@ def main():
     ax.set_ylabel('Size of grap 2')
     ax.set_zlabel('Time')
 
-    # plt.show()
-    plt.savefig(file + ".png")
+    plt.show()
+    # plt.savefig("result.png")
 
 if __name__ == '__main__':
     main()
