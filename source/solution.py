@@ -264,7 +264,7 @@ def calculate_example(example, args):
     print(f'\n\t+++PLEASE CLOSE THE WINDOW TO CONTINUE...+++')
     # Visualizer(g1, g2, G, max_clique.max_found, c1, c2)
     fields=[g1.n_vertices, g2.n_vertices, duration1, duration2]
-    with open('result.csv', 'a') as f:
+    with open(str(args.input) + '_result.csv', 'a', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(fields)
 
