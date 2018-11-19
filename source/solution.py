@@ -17,7 +17,8 @@ from numpy import genfromtxt
 class Graph:
     def __init__(self, matrix):
         if isinstance(matrix, str) or isinstance(matrix, io.TextIOWrapper):
-            self.matrix = genfromtxt(matrix, delimiter=',', dtype=int).astype(bool)
+            self.matrix = genfromtxt(
+                matrix, delimiter=',', dtype=int).astype(bool)
         elif isinstance(matrix, np.ndarray):
             self.matrix = np.copy(matrix)
         else:
@@ -87,21 +88,36 @@ class MaxClique:
         self._run()
 
     def _run(self):
+
+        # Iterate over n * m vertices
+        # n - size of G1
+        # m - size of G2
         for i in tqdm(range(self.G.n_vertices)):
             self.log = []
+            # Getting neighbours is single op
+            # because each vertex has its list of neighbours
             N = self.G.get_neighbors(i)
             if len(N) >= len(self.max_found):
                 U = set()
+                # n*m-1 iterations (worst case)
                 for j in N:
+                    # Do not consider vertices we already visited
                     if j > i:
+                        # If degree of some neighbour j is not greater or equal to
+                        # currently maximum clique then we don't want to explore this
+                        # vertex because it will not make the clique any bigger
                         if len(self.G.get_neighbors(j)) >= len(self.max_found):
                             U.add(j)
             self.verbose and print(f"\n\nSearching for i={i}\tU: {U}\tN: {N}")
+
+            # In the worst case scenario U contains n*m-1 vertices
             if self.approx:
+                # Current clique is just single vertex `i` at the beggining
                 self._clique_approximation(U, {i})
             else:
                 self._clique(U, {i})
-            self.verbose and print('Search log:\n{}'.format('\n'.join(self.log)))
+            self.verbose and print(
+                'Search log:\n{}'.format('\n'.join(self.log)))
 
         if len(self.max_found) > 0:
             print(f"MAX CLIQUE FOUND:\n{self.max_found}")
@@ -109,9 +125,11 @@ class MaxClique:
             print("NO CLIQUE FOUND.")
 
     def _clique(self, U, current_clique):
-        self.verbose and self.log.append(f'_clique U: {U}\tcurrent: {current_clique}')
+        self.verbose and self.log.append(
+            f'_clique U: {U}\tcurrent: {current_clique}')
         if len(U) == 0 and len(current_clique) > len(self.max_found):
-            self.verbose and self.log.append(f"_new_max_found: {current_clique}\told: {self.max_found}")
+            self.verbose and self.log.append(
+                f"_new_max_found: {current_clique}\told: {self.max_found}")
             self.max_found = set(current_clique)
             return
 
@@ -131,21 +149,41 @@ class MaxClique:
             self._clique(U & N, current_clique)
 
     def _clique_approximation(self, U, current_clique):
-        self.verbose and self.log.append(f'_clique U: {U}\tcurrent: {current_clique}')
+        self.verbose and self.log.append(
+            f'_clique U: {U}\tcurrent: {current_clique}')
+
+        # If U is empty - meaning that we visited all possible vertices
+        # that could form a clique and if that particular clique
+        # is bigger that max_found clique, then set that particular
+        # clique as max_found.
         if len(U) == 0 and len(current_clique) > len(self.max_found):
-            self.verbose and self.log.append(f"_new_max_found: {current_clique}\told: {self.max_found}")
+            self.verbose and self.log.append(
+                f"_new_max_found: {current_clique}\told: {self.max_found}")
             self.max_found = set(current_clique)
             return
 
+        # This operations costs n*m executions.
+        # We could optimize it by using priority queue
+        # to store list of neighbours of a vertex
+        # sorted by degree. Then finding max is single op.
         u = self._get_neighbor_with_max_degree(U)
         if u is not None:
             U.remove(u)
+            # If vertex `u` is connected to every vertex in current clique
+            # then we add it to the current clique.
             if all([self.G.is_connected(w, u) for w in current_clique]):
                 current_clique.add(u)
+
+            # Get only those neighbours of `u` that could
+            # potentialy form bigger clique (which degree is bigger
+            # or equal to currently max clique)
             N = set(self._filter_neighborhood(u))
 
             self.verbose and self.log.append(
                 f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
+            # U union N means that we only want those vertices
+            # that are both in N and U because only those can
+            # form clique
             self._clique_approximation(U & N, current_clique)
 
     def _get_neighbor_with_max_degree(self, U):
@@ -165,7 +203,8 @@ class MaxClique:
 class Visualizer:
     def __init__(self, g1, g2, G, max_found, c1, c2):
         ax = plt.subplot(131)
-        ax.set_title("First graph (green is the maximal common subgraph)", fontsize=8)
+        ax.set_title(
+            "First graph (green is the maximal common subgraph)", fontsize=8)
         visualization = nx.from_numpy_matrix(g1.matrix.astype(int))
         pos = nx.spring_layout(visualization)
         nx.draw_networkx(visualization, pos, node_size=100)
@@ -173,7 +212,8 @@ class Visualizer:
         plt.axis('off')
 
         ax = plt.subplot(132)
-        ax.set_title("Second graph (green is the maximal common subgraph)", fontsize=8)
+        ax.set_title(
+            "Second graph (green is the maximal common subgraph)", fontsize=8)
         visualization = nx.from_numpy_matrix(g2.matrix.astype(int))
         pos = nx.spring_layout(visualization)
         nx.draw_networkx(visualization, pos, node_size=100)
@@ -181,7 +221,8 @@ class Visualizer:
         plt.axis('off')
 
         ax = plt.subplot(133)
-        ax.set_title("Modular product of both graphs. Green is the maximal clique found.", fontsize=8)
+        ax.set_title(
+            "Modular product of both graphs. Green is the maximal clique found.", fontsize=8)
         visualization = nx.from_numpy_matrix(G.matrix.astype(int))
         pos = nx.spring_layout(visualization)
         nx.draw_networkx(visualization, pos, node_size=50)
@@ -205,15 +246,20 @@ class Visualizer:
         visualization = nx.from_numpy_matrix(graph.matrix.astype(int))
         pos = nx.spring_layout(visualization)
         nx.draw_networkx(visualization, pos, node_size=50)
-        self._outline_selected_vertices(visualization, pos, selected_vertex_set)
+        self._outline_selected_vertices(
+            visualization, pos, selected_vertex_set)
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Calulates maximal common induced connected subgraph.')
-    parser.add_argument('--verbose', '-v', action='store_true', help='print log messages (for debugging).')
-    parser.add_argument('--approx', '-a', action='store_true', help='use faster approximating algorithm.')
+    parser = argparse.ArgumentParser(
+        description='Calulates maximal common induced connected subgraph.')
+    parser.add_argument('--verbose', '-v', action='store_true',
+                        help='print log messages (for debugging).')
+    parser.add_argument('--approx', '-a', action='store_true',
+                        help='use faster approximating algorithm.')
     parser.add_argument('--input', '-i', type=str, help='input directory.')
-    parser.add_argument('--num', '-n', type=int, choices=range(1, 13), help='choose which test to run.')
+    parser.add_argument('--num', '-n', type=int,
+                        choices=range(1, 13), help='choose which test to run.')
     args = parser.parse_args()
     print(args.num)
 
@@ -238,7 +284,9 @@ def main():
 def calculate_example(example, args):
     print(f'\t\t+++STARTING {example}+++\n')
     graphs = os.listdir(f'{args.input}/{example}')
-    get_path = lambda name: os.path.realpath('.') + f'/{args.input}/{example}/{name}'
+
+    def get_path(name): return os.path.realpath(
+        '.') + f'/{args.input}/{example}/{name}'
     g1 = Graph(get_path(graphs[0]))
     g2 = Graph(get_path(graphs[1]))
     print(f'g1:\n {g1} \n\n g2:\n{g2}')
