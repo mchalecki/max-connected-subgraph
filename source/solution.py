@@ -7,7 +7,6 @@ from itertools import product
 
 import argparse
 from tqdm import tqdm
-from typing import Union, Tuple, List
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -23,6 +22,8 @@ class Graph:
             self.matrix = np.copy(matrix)
         else:
             raise Exception("Bad argument type")
+
+        self.neighbor_data = self.build_neighbor_matrix(self.matrix)
 
     def get_neighbors(self, vertex):
         """Returns ndarray with indices of neighbors"""
@@ -71,6 +72,10 @@ class Graph:
         n = n_vertices[1]
         return val // n, val % n
 
+    @staticmethod
+    def build_neighbor_matrix(matrix):
+        return {i: set(np.nonzero(row)[0]) for i, row in enumerate(matrix)}
+
 
 class MaxClique:
     def __init__(self, G, approx=False, verbose=False):
@@ -112,7 +117,8 @@ class MaxClique:
 
         while len(U) > 0:
             if len(current_clique) + len(U) <= len(self.max_found):
-                self.verbose and self.log.append(f'_clique_too_small U: {U}\tcurrent: {current_clique}\tmax: {self.max_found}')
+                self.verbose and self.log.append(
+                    f'_clique_too_small U: {U}\tcurrent: {current_clique}\tmax: {self.max_found}')
                 return
 
             u = U.pop()
@@ -120,7 +126,8 @@ class MaxClique:
                 current_clique.add(u)
             N = set(self._filter_neighborhood(u))
 
-            self.verbose and self.log.append(f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
+            self.verbose and self.log.append(
+                f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
             self._clique(U & N, current_clique)
 
     def _clique_approximation(self, U, current_clique):
@@ -137,7 +144,8 @@ class MaxClique:
                 current_clique.add(u)
             N = set(self._filter_neighborhood(u))
 
-            self.verbose and self.log.append(f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
+            self.verbose and self.log.append(
+                f'_recursive_clique U:{U}\tN:{N}\n\t\t  U&N:{U&N}\tcurrent:{current_clique}\tu:{u}')
             self._clique_approximation(U & N, current_clique)
 
     def _get_neighbor_with_max_degree(self, U):
@@ -213,7 +221,7 @@ def main():
     data.sort(key=int)
 
     if args.num:
-        example = data[args.num-1]
+        example = data[args.num - 1]
         calculate_example(example, args)
         return
 
@@ -257,13 +265,13 @@ def calculate_example(example, args):
         c2.append(j)
 
     print(f'\n\t+++SUBGRAPH IN G1+++')
-    print('\t\t'+str(c1))
+    print('\t\t' + str(c1))
     print(f'\n\t+++SUBGRAPH IN G2+++')
-    print('\t\t'+str(c2))
+    print('\t\t' + str(c2))
 
     print(f'\n\t+++PLEASE CLOSE THE WINDOW TO CONTINUE...+++')
     # Visualizer(g1, g2, G, max_clique.max_found, c1, c2)
-    fields=[g1.n_vertices, g2.n_vertices, duration1, duration2]
+    fields = [g1.n_vertices, g2.n_vertices, duration1, duration2]
     with open(str(args.input) + '_result.csv', 'a', newline='') as f:
         writer = csv.writer(f)
         writer.writerow(fields)
