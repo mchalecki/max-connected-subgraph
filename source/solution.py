@@ -27,7 +27,7 @@ class Graph:
 
     def get_neighbors(self, vertex):
         """Returns ndarray with indices of neighbors"""
-        return np.flatnonzero(self.matrix[vertex])
+        return self.neighbor_data[vertex]
 
     def is_connected(self, v1, v2):
         """Check whether vertices are connected"""
