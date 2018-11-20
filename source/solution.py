@@ -213,7 +213,7 @@ def main():
     parser.add_argument('--verbose', '-v', action='store_true', help='print log messages (for debugging).')
     parser.add_argument('--approx', '-a', action='store_true', help='use faster approximating algorithm.')
     parser.add_argument('--input', '-i', type=str, help='input directory.')
-    parser.add_argument('--num', '-n', type=int, choices=range(1, 13), help='choose which test to run.')
+    parser.add_argument('--num', '-n', type=int, help='choose which test to run.')
     args = parser.parse_args()
     print(args.num)
 
