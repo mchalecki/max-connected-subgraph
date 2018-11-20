@@ -1,3 +1,4 @@
 1. Dodać trzecią kategorię grafów (trees, bipartite graphs, sparse, dense)
 2. Tabelka podsumowywująca czas, w którym algorythm policzył różne typy grafów.
 3. Exact vs approx (dla małych grafów <= 10) takie grafy, dla których approx nie znalazł maksymalnego podgrafu, ale zrobił to szybciej. Pokazać jaki rzeczywiście był największy podgraf.
+4. Na jednym grafie porównac prędkość algorytmu dokładne i przybliżeniowego.
