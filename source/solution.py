@@ -225,14 +225,12 @@ def main():
         calculate_example(example, args)
         return
 
-    # if args.approx:
-    #     for example in data[6:]:
-    #         calculate_example(example, args)
-    # else:
-    #     for example in data[:6]:
-    #         calculate_example(example, args)
-    for example in data:
-        calculate_example(example, args)
+    if args.approx:
+        for example in data[6:]:
+            calculate_example(example, args)
+    else:
+        for example in data[:6]:
+            calculate_example(example, args)
 
 
 def calculate_example(example, args):
@@ -270,11 +268,7 @@ def calculate_example(example, args):
     print('\t\t' + str(c2))
 
     print(f'\n\t+++PLEASE CLOSE THE WINDOW TO CONTINUE...+++')
-    # Visualizer(g1, g2, G, max_clique.max_found, c1, c2)
-    fields = [g1.n_vertices, g2.n_vertices, duration1, duration2]
-    with open(str(args.input) + '_result.csv', 'a', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(fields)
+    Visualizer(g1, g2, G, max_clique.max_found, c1, c2)
 
 
 if __name__ == '__main__':
